@@ -7,6 +7,10 @@ __pycache__/
 
 *.md
 
+
+# local settings
+local_settings.py
+
 # C extensions
 *.so
 
