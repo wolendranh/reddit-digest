@@ -1,8 +1,9 @@
 import argparse
-import time
+import datetime
 
 from markdown2 import Markdown
 import praw
+from psaw import PushshiftAPI
 
 try:
     from settings import CREDENTIALS, SUBREDDIT, LINK_PATTERNS
@@ -10,12 +11,16 @@ except ImportError:
     raise Exception('please define variables in your settings file.')
 
 
-def get_submissions(ups=None, subreddit=None):
+def get_submissions(api=None, ups=None, start=None, end=None, subreddit=None):
     if not subreddit:
         raise Exception('please provide subreddit object')
-    for submission in subreddit.submissions(start_timestamp, end_timestamp):
-        if ups and submission.ups >= ups:
-            yield submission
+
+    for sub in api.search_submissions(after=start,
+                                      subreddit=subreddit,
+                                      filter=['url', 'author', 'title', 'subreddit'],
+                                      limit=10):
+        if ups and sub.ups >= ups:
+            yield sub
 
 
 if __name__ == "__main__":
@@ -25,25 +30,28 @@ if __name__ == "__main__":
     parser.add_argument("ups")
 
     args = parser.parse_args()
-    start_date, end_date = time.strptime(args.start, '%Y-%m-%d'), time.strptime(args.end, '%Y-%m-%d')
+    start_date, end_date = datetime.datetime.strptime(args.start,  '%Y-%m-%d'), \
+                           datetime.datetime.strptime(args.end, '%Y-%m-%d')
     ups = int(args.ups)
 
     reddit = praw.Reddit(**CREDENTIALS)
-    python_subreddit = reddit.subreddit(SUBREDDIT)
+    api = PushshiftAPI(reddit)
 
-    start_timestamp = time.mktime(start_date)
-    end_timestamp = time.mktime(end_date)
+    start_timestamp = int(start_date.timestamp())
+    end_timestamp = int(end_date.timestamp())
 
     markdown = Markdown(extras=["link-patterns"], link_patterns=LINK_PATTERNS)
 
     # write to markdown file with links embedded
     with open('links.md', 'w') as file:
-        id = 1
-        for submission in get_submissions(ups=ups, subreddit=python_subreddit):
+        _id = 1
+        for submission in get_submissions(api=api, ups=ups, start=start_timestamp,
+                                          end=end_timestamp, subreddit=SUBREDDIT):
+            print(submission.selftext)
             file.write(
                 '  '.join(
                     [
-                        str(id),
+                        str(_id),
                         markdown.convert(submission.shortlink + '\n' + submission.title),
                     ]))
-            id += 1
+            _id += 1
