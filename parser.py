@@ -21,6 +21,9 @@ def parse_dates(value):
 
 
 if __name__ == "__main__":
+    # example usage
+    # python parser.py --start=2019-08-01 --end=2019-09-06 --ups=10
+
     parser = argparse.ArgumentParser(description='Retrieve Reddit posts and stores them as html file with links.')
     parser.add_argument("--start", help='date from which submissions will be searched.', action=date_action())
     parser.add_argument("--end", help='date until which submissions will be searched.', action=date_action())
